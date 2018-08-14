@@ -63,7 +63,7 @@ class Zipper
      */
     public function __destruct()
     {
-        if (is_object($this->repository)) {
+        if (null !== $this->repository) {
             $this->repository->close();
         }
     }
@@ -538,17 +538,28 @@ class Zipper
      * @param $pathToDir
      */
     private function addDir($pathToDir)
-    {
-        // First go over the files in this directory and add them to the repository.
-        foreach ($this->file->files($pathToDir) as $file) {
-            $this->addFile($pathToDir.'/'.basename($file));
+    {        
+        $files = scandir($pathToDir);
+        foreach ($files as $file) {
+			if (($file != ".") && ($file != "..") && (!is_dir($pathToDir.'/'.basename($file))))
+			{
+				$this->addFile($pathToDir.'/'.basename($file));
+			}
         }
+        
 
         // Now let's visit the subdirectories and add them, too.
         foreach ($this->file->directories($pathToDir) as $dir) {
             $old_folder = $this->currentFolder;
             $this->currentFolder = empty($this->currentFolder) ? basename($dir) : $this->currentFolder.'/'.basename($dir);
-            $this->addDir($pathToDir.'/'.basename($dir));
+            if (count(glob($pathToDir.'/'.basename($dir)."/*")) === 0)
+			{
+				$this->addEmptyDir($pathToDir.'/'.basename($dir));
+			}
+			else
+			{
+				$this->addDir($pathToDir.'/'.basename($dir));
+			}
             $this->currentFolder = $old_folder;
         }
     }
